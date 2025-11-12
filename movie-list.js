@@ -9,10 +9,7 @@ const path = require("path");
 
 // MongoDB Atlas URI từ biến môi trường
 const uri = process.env.MONGODB_URI;
-const client = new MongoClient(uri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+const client = new MongoClient(uri);
 
 const app = express();
 
