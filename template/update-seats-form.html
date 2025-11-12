@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Update Seats</title>
+<style>
+html {
+  height: 100%;
+}
+body {
+  margin: 0;
+  padding: 0;
+  background: url("https://cdn.pixabay.com/photo/2018/02/27/15/40/background-3185765_1280.jpg") no-repeat center center fixed;
+  background-size: cover;
+}
+.center-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.login-box {
+  width: 400px;
+  padding: 40px;
+  background: rgba(226, 53, 157, 0.5);
+  box-shadow: 0 15px 25px rgba(226, 53, 157, 0.5);
+  border-radius: 10px;
+}
+.login-box h1 {
+  margin: 0 0 30px;
+  color: #520340;
+  text-align: center;
+}
+.user-box select,
+.user-box input {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  margin-bottom: 30px;
+  border: none;
+  border-bottom: 1px solid #fff;
+  background: transparent;
+  outline: none;
+  color: #fff;
+}
+.user-box label {
+  font-size: 14px;
+  color: #fff;
+}
+.login-box-button {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  background: #520340;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.login-box-button:hover {
+  background: #fff;
+  color: #520340;
+}
+</style>
+</head>
+<body>
+<div class="center-container">
+<div class="login-box">
+<h1>Update Seats</h1>
+<form id="seats-form" action="/update-seats" method="POST">
+<div class="user-box">
+<select id="movie-category" name="Movie name" required>
+<option value="">Select a movie</option>
+</select>
+</div>
+
+<div class="user-box">
+<label>New Available Seats</label>
+<input type="number" id="available-seats" name="Available Seats" required />
+</div>
+
+<button type="submit" class="login-box-button">Submit</button>
+</form>
+</div>
+</div>
+
+<script>
+async function getMovieList() {
+  const movieCategoryDiv = document.getElementById("movie-category");
+  try {
+    const response = await fetch("/get-all-movies");
+    const movies = await response.json();
+    displayMovieList(movies);
+  } catch (error) {
+    console.error("Error:", error);
+  }
+}
+
+function displayMovieList(movies) {
+  const movieCategoryDiv = document.getElementById("movie-category");
+  if (movies.length === 0) {
+    movieCategoryDiv.innerHTML = `<option>No movies found</option>`;
+  } else {
+    movies.forEach(movie => {
+      let option = document.createElement("option");
+      option.value = movie["Movie name"];
+      option.textContent = movie["Movie name"];
+      movieCategoryDiv.appendChild(option);
+    });
+  }
+}
+
+document.addEventListener("DOMContentLoaded", getMovieList);
+</script>
+</body>
+</html>

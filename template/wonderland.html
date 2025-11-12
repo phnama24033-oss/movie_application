@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Movie List</title>
+<style>
+html {
+  height: 100%;
+}
+body {
+  text-align: center;
+  background: url("https://cdn.pixabay.com/photo/2017/01/12/17/30/warm-and-cozy-1975215_1280.jpg") no-repeat center center fixed;
+  background-size: cover;
+  margin: 0;
+  height: 100%;
+  font-size: 20px;
+  position: fixed;
+  place-items: center;
+}
+.container {
+  position: fixed;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50em;
+  height: 18em;
+  color: #fff;
+  font-size: 20px;
+}
+.button {
+  background-color: #000;
+  border: .5px solid crimson;
+  border-radius: 10px;
+  color: #fff;
+  padding: 8px 20px;
+  font-size: 20px;
+  cursor: pointer;
+  margin: 0 10px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Welcome to the Wonderland Widescreen</h1>
+  <br><br><br>
+  <a href="/views/admin-login.ejs"><button class="button">Admin Login</button></a>
+  <a href="/views/login.ejs"><button class="button">Guest Login</button></a>
+</div>
+</body>
+</html>
