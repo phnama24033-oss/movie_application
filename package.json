@@ -4,7 +4,7 @@
   "description": "",
   "main": "movie-list.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node movie-list.js"
   },
   "keywords": [],
   "author": "",
@@ -21,7 +21,7 @@
     "passport-local-mongoose": "^8.0.0"
   },
   "engines": {
-    "node": ">=18.17.1 <19.0.0"
+    "node": ">=20.19.0"
   },
   "type": "commonjs"
 }
