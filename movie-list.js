@@ -1,15 +1,19 @@
+// movie-list.js
 const express = require("express");
 const { MongoClient } = require("mongodb");
 const bodyParser = require("body-parser");
 const session = require("express-session");
 const passport = require("passport");
-const mongoose = require("mongoose");
-const LocalStrategy = require("passport-local");
+const LocalStrategy = require("passport-local").Strategy;
 const path = require("path");
 
-const uri = "mongodb://127.0.0.1:27017/Movie"; // hoặc MongoDB Atlas URI nếu bạn có
+// MongoDB Atlas URI từ biến môi trường
+const uri = process.env.MONGODB_URI;
+const client = new MongoClient(uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
-const client = new MongoClient(uri);
 const app = express();
 
 app.set("view engine", "ejs");
@@ -77,22 +81,52 @@ passport.deserializeUser(function (id, done) {
 async function main() {
   try {
     await client.connect();
-    console.log("Connected to MongoDB");
+    console.log("✅ Connected to MongoDB Atlas");
 
-    const database = client.db();
+    const database = client.db(); // database lấy từ URI
     const collection = database.collection("MovieCollection");
+
+    // ------------------- Seed dữ liệu mẫu -------------------
+    const sampleMovies = [
+      {
+        "Movie name": "Inception",
+        "Category": "Sci-Fi",
+        "Description": "A thief who steals corporate secrets through dream-sharing technology.",
+        "Actors": ["Leonardo DiCaprio", "Joseph Gordon-Levitt"],
+        "Available Seats": 50
+      },
+      {
+        "Movie name": "Avengers: Endgame",
+        "Category": "Action",
+        "Description": "The Avengers assemble once more to undo the damage caused by Thanos.",
+        "Actors": ["Robert Downey Jr.", "Chris Evans", "Scarlett Johansson"],
+        "Available Seats": 100
+      },
+      {
+        "Movie name": "The Lion King",
+        "Category": "Animation",
+        "Description": "The story of a young lion prince overcoming adversity to claim his kingdom.",
+        "Actors": ["Matthew Broderick", "James Earl Jones"],
+        "Available Seats": 75
+      }
+    ];
+
+    const count = await collection.countDocuments();
+    if (count === 0) {
+      await collection.insertMany(sampleMovies);
+      console.log("✅ Sample data added to MovieCollection");
+    }
 
     // Set views folder
     app.set("views", path.join(__dirname, "views"));
 
     // ------------------- ROUTES -------------------
 
-    // Trang chính (login)
     app.get("/", (req, res) => {
       res.sendFile(__dirname + "/template/wonderland.html");
     });
 
-    // Admin Login
+    // Admin login
     app.get("/views/admin-login.ejs", (req, res) => {
       res.render("admin-login");
     });
@@ -106,9 +140,7 @@ async function main() {
     );
 
     app.get("/admin-error", (req, res) => {
-      res.send(
-        '<script>alert("Incorrect Admin username or password"); window.location.href = "/";</script>'
-      );
+      res.send('<script>alert("Incorrect Admin username or password"); window.location.href = "/";</script>');
     });
 
     app.get("/admin-dashboard", (req, res) => {
@@ -129,18 +161,16 @@ async function main() {
     );
 
     app.get("/user-error", (req, res) => {
-      res.send(
-        '<script>alert("Incorrect username or password"); window.location.href = "/";</script>'
-      );
+      res.send('<script>alert("Incorrect username or password"); window.location.href = "/";</script>');
     });
 
     app.get("/user-dashboard", (req, res) => {
       res.sendFile(__dirname + "/template/book-seats-form.html");
     });
 
-    // Các trang HTML khác
+    // HTML templates
     app.get("/add-movie-form.html", (req, res) => {
-      res.sendFile(__dirname + "template/add-movie-form.html");
+      res.sendFile(__dirname + "/template/add-movie-form.html");
     });
     app.get("/book-seats-form.html", (req, res) => {
       res.sendFile(__dirname + "/templates/book-seats-form.html");
@@ -152,14 +182,13 @@ async function main() {
       res.sendFile(__dirname + "/templates/update-seats-form.html");
     });
 
-    // Lấy danh sách phim theo thể loại
+    // Lấy danh sách phim theo category
     app.get("/get-movies", async (req, res) => {
       const category = req.query.category;
       try {
         const movies = await collection.find({ Category: category }).toArray();
         res.status(200).json(movies);
       } catch (error) {
-        console.error("Error fetching movies:", error);
         res.status(500).json({ error: "Failed to fetch movies" });
       }
     });
@@ -196,9 +225,7 @@ async function main() {
     app.post("/add-movie", async (req, res) => {
       try {
         await collection.insertOne(req.body);
-        res.send(
-          '<script>alert("Movie added successfully"); window.location.href = "/admin-dashboard";</script>'
-        );
+        res.send('<script>alert("Movie added successfully"); window.location.href = "/admin-dashboard";</script>');
       } catch (error) {
         res.status(500).send("<h2>Failed to add movie</h2>");
       }
@@ -211,9 +238,7 @@ async function main() {
         const movieNameToBook = req.body["Movie name"];
         const seatsToBook = parseInt(req.body["seats-to-book"]);
 
-        const existingMovie = await collection.findOne({
-          "Movie name": movieNameToBook,
-        });
+        const existingMovie = await collection.findOne({ "Movie name": movieNameToBook });
         if (!existingMovie) return res.send("Movie not found");
 
         const availableSeats = existingMovie["Available Seats"];
@@ -224,9 +249,7 @@ async function main() {
             { $set: { "Available Seats": updatedSeats } }
           );
 
-          const redirectRoute = isAdmin
-            ? "/admin-dashboard"
-            : "/user-dashboard";
+          const redirectRoute = isAdmin ? "/admin-dashboard" : "/user-dashboard";
 
           if (result.modifiedCount === 1) {
             return res.send(`
@@ -255,24 +278,14 @@ async function main() {
     app.post("/delete-movie", async (req, res) => {
       const movieNameToDelete = req.body["Movie name"];
       try {
-        const existingMovie = await collection.findOne({
-          "Movie name": movieNameToDelete,
-        });
-        if (!existingMovie) {
-          res.send("Movie not found");
+        const existingMovie = await collection.findOne({ "Movie name": movieNameToDelete });
+        if (!existingMovie) return res.send("Movie not found");
+
+        const result = await collection.deleteOne({ "Movie name": movieNameToDelete });
+        if (result.deletedCount === 1) {
+          res.send('<script>alert("Movie deleted successfully"); window.location.href = "/admin-dashboard";</script>');
         } else {
-          const result = await collection.deleteOne({
-            "Movie name": movieNameToDelete,
-          });
-          if (result.deletedCount === 1) {
-            res.send(
-              '<script>alert("Movie deleted successfully"); window.location.href = "/admin-dashboard";</script>'
-            );
-          } else {
-            res.send(
-              '<script>alert("Failed to delete the movie"); window.location.href = "/";</script>'
-            );
-          }
+          res.send('<script>alert("Failed to delete the movie"); window.location.href = "/";</script>');
         }
       } catch (error) {
         res.status(500).send("Failed to delete the movie");
@@ -284,26 +297,19 @@ async function main() {
       const movieNameToUpdate = req.body["Movie name"];
       const newAvailableSeats = parseInt(req.body["Available Seats"]);
       try {
-        const existingMovie = await collection.findOne({
-          "Movie name": movieNameToUpdate,
-        });
+        const existingMovie = await collection.findOne({ "Movie name": movieNameToUpdate });
         if (!existingMovie) {
-          res.send(
-            '<script>alert("Movie not found"); window.location.href = "/";</script>'
-          );
-        } else {
-          const result = await collection.updateOne(
-            { _id: existingMovie._id },
-            { $set: { "Available Seats": newAvailableSeats } }
-          );
+          return res.send('<script>alert("Movie not found"); window.location.href = "/";</script>');
+        }
+        const result = await collection.updateOne(
+          { _id: existingMovie._id },
+          { $set: { "Available Seats": newAvailableSeats } }
+        );
 
-          if (result.modifiedCount === 1) {
-            res.send(
-              '<script>alert("Seats updated successfully"); window.location.href = "/admin-dashboard";</script>'
-            );
-          } else {
-            res.status(500).send("Failed to update available seats");
-          }
+        if (result.modifiedCount === 1) {
+          res.send('<script>alert("Seats updated successfully"); window.location.href = "/admin-dashboard";</script>');
+        } else {
+          res.status(500).send("Failed to update available seats");
         }
       } catch (error) {
         res.status(500).send("Failed to update available seats");
@@ -316,7 +322,7 @@ async function main() {
     });
 
   } catch (error) {
-    console.error("Error connecting to MongoDB:", error);
+    console.error("❌ Error connecting to MongoDB:", error);
   }
 }
 
